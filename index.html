@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>GRID STUDIO PRO — SQUARE GRID + CUSTOM PADDING</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #d6d1c4;
+            font-family: 'Courier New', 'Fira Code', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+        .app {
+            max-width: 1500px;
+            width: 100%;
+            background: #f5f0e6;
+            border: 3px solid #111;
+            box-shadow: 14px 14px 0 rgba(0,0,0,0.2);
+            padding: 24px 28px 28px 28px;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #111;
+            padding-bottom: 18px;
+        }
+        .btn {
+            background: #fff;
+            border: 2px solid #111;
+            padding: 8px 22px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 #000;
+            transition: 0.05s linear;
+            color: #111;
+        }
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 #000;
+        }
+        .url-input {
+            border: 2px solid #111;
+            padding: 8px 16px;
+            font-family: monospace;
+            background: white;
+            min-width: 240px;
+            outline: none;
+            font-size: 0.8rem;
+        }
+        .drag-zone {
+            border: 2px dashed #111;
+            background: #e9e2d4;
+            padding: 6px 18px;
+            font-weight: bold;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+        }
+        .title-area {
+            margin: 8px 0 18px 0;
+            text-align: center;
+        }
+        #gridTitle {
+            width: 100%;
+            background: transparent;
+            border: 2px solid #111;
+            padding: 12px 16px;
+            font-size: 1.8rem;
+            font-weight: 800;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            color: #111;
+            background: #fffcf4;
+        }
+        .canvas-container {
+            background: #dad3c4;
+            padding: 20px;
+            border: 3px solid #111;
+            overflow: auto;
+            max-height: 62vh;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        #gridCanvas {
+            display: block;
+            background: white;
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.15);
+            cursor: grab;
+        }
+        #gridCanvas:active { cursor: grabbing; }
+        
+        .control-panel {
+            background: #e8e0d0;
+            border: 2px solid #111;
+            padding: 16px 20px;
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            align-items: flex-end;
+        }
+        .ctrl-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-weight: bold;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+        .ctrl-group label {
+            letter-spacing: 1px;
+        }
+        .ctrl-group input {
+            background: white;
+            border: 2px solid #111;
+            padding: 6px 12px;
+            font-family: monospace;
+            font-weight: bold;
+            width: 100px;
+        }
+        .range-value {
+            font-size: 0.7rem;
+            background: #111;
+            color: white;
+            padding: 2px 8px;
+            text-align: center;
+        }
+        .status-bar {
+            margin-top: 18px;
+            display: flex;
+            justify-content: space-between;
+            border-top: 2px solid #111;
+            padding-top: 14px;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+        .trash-bin {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 85px;
+            height: 85px;
+            background: #1f1c19;
+            border: 3px solid #f0e2cf;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            color: #ffcfaa;
+            font-weight: bold;
+            cursor: grab;
+            transition: 0.08s linear;
+            box-shadow: 7px 7px 0 #00000066;
+            z-index: 999;
+            font-family: monospace;
+        }
+        .trash-bin.active-drop {
+            background: #a1220a;
+            transform: scale(1.02);
+            border-color: white;
+            color: white;
+        }
+        .drag-preview {
+            position: fixed;
+            width: 75px;
+            height: 75px;
+            border: 3px solid black;
+            background: rgba(0,0,0,0.75);
+            pointer-events: none;
+            z-index: 10000;
+            display: none;
+            box-shadow: 5px 5px 0 #000;
+            background-size: cover;
+            background-position: center;
+        }
+        @media (max-width: 780px) {
+            .control-panel { flex-direction: column; align-items: stretch; }
+            .trash-bin { width: 65px; height: 65px; font-size: 2rem; bottom: 16px; right: 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="toolbar">
+        <button class="btn" id="pasteBtn">📋 PASTE</button>
+        <button class="btn" id="fileBtn">📁 FILE</button>
+        <input type="text" id="imageUrl" class="url-input" placeholder="IMAGE URL">
+        <button class="btn" id="urlBtn">➕ ADD URL</button>
+        <div class="drag-zone" id="dropHint">📂 DROP FILE HERE</div>
+        <button class="btn" id="exportPngBtn">⬇ EXPORT PNG</button>
+    </div>
+    <div class="title-area">
+        <input type="text" id="gridTitle" value=":: CUSTOM GRID ::" placeholder="YOUR TEXT HERE">
+    </div>
+    <div class="canvas-container" id="canvasWrap">
+        <canvas id="gridCanvas" width="600" height="600"></canvas>
+    </div>
+    
+    <!-- FULL CONTROL PANEL: PADDING + GRID OFFSET / CELL SCALE-->
+    <div class="control-panel">
+        <div class="ctrl-group">
+            <label>🟦 OUTER PADDING (px)</label>
+            <input type="number" id="outerPadding" value="20" step="2" min="0" max="80">
+            <span class="range-value">space around grid</span>
+        </div>
+        <div class="ctrl-group">
+            <label>🔲 MIN CELL SIZE (px)</label>
+            <input type="number" id="minCellSize" value="130" step="5" min="70" max="320">
+            <span class="range-value">preserves square cells</span>
+        </div>
+        <div class="ctrl-group">
+            <label>🎨 GRID LINE THICK</label>
+            <input type="number" id="lineThick" value="4" step="0.5" min="1" max="10">
+        </div>
+        <div class="ctrl-group">
+            <label>📐 MAX CANVAS SIZE</label>
+            <input type="number" id="maxCanvasSize" value="1800" step="50" min="800" max="2600">
+        </div>
+        <div class="ctrl-group">
+            <label>🔧 FORCE RESYNC</label>
+            <button class="btn" id="forceResync" style="padding:6px 12px;">⟳ REFRESH GRID</button>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        <span>📸 IMAGES: <strong id="imgCount">0</strong></span>
+        <span>🔲 SQUARE GRID: <strong id="gridDim">0x0</strong></span>
+        <span>✋ DRAG PHOTO TO REORDER | 🗑️ DRAG TO TRASH</span>
+    </div>
+</div>
+<div class="trash-bin" id="trashZone">🗑️</div>
+<div class="drag-preview" id="dragPreview"></div>
+
+<script>
+    (function(){
+        let images = []; // array of { img: HTMLImageElement }
+        let canvas = document.getElementById('gridCanvas');
+        let ctx = canvas.getContext('2d');
+        let redrawNeeded = true;
+        
+        // DOM controls
+        let outerPaddingInput = document.getElementById('outerPadding');
+        let minCellSizeInput = document.getElementById('minCellSize');
+        let lineThickInput = document.getElementById('lineThick');
+        let maxCanvasSizeInput = document.getElementById('maxCanvasSize');
+        
+        let outerPadding = 20;
+        let minCellSize = 130;
+        let lineThick = 4;
+        let maxCanvasLimit = 1800;
+        
+        function updateSettingsFromUI() {
+            outerPadding = parseInt(outerPaddingInput.value) || 20;
+            minCellSize = parseInt(minCellSizeInput.value) || 130;
+            lineThick = parseFloat(lineThickInput.value) || 4;
+            maxCanvasLimit = parseInt(maxCanvasSizeInput.value) || 1800;
+            if(minCellSize < 50) minCellSize = 50;
+            if(outerPadding < 0) outerPadding = 0;
+            if(lineThick < 1) lineThick = 1;
+            if(maxCanvasLimit < 400) maxCanvasLimit = 800;
+            redrawNeeded = true;
+            renderCanvas();
+        }
+        
+        [outerPaddingInput, minCellSizeInput, lineThickInput, maxCanvasSizeInput].forEach(inp => {
+            inp.addEventListener('input', () => { updateSettingsFromUI(); });
+        });
+        document.getElementById('forceResync').addEventListener('click', () => { redrawNeeded = true; renderCanvas(); });
+        
+        // SQUARE GRID METRICS + RESPECT PADDING (empty space around the whole grid)
+        function getSquareGridMetricsWithPadding(total) {
+            if(total === 0) {
+                return { gridSide: 0, cellSize: 0, innerWidth: 0, innerHeight: 0, canvasW: 600, canvasH: 600, padding: outerPadding };
+            }
+            let gridSide = Math.ceil(Math.sqrt(total));
+            let rawCell = minCellSize;
+            let maxInner = maxCanvasLimit - (outerPadding * 2);
+            if(maxInner < 100) maxInner = 400;
+            let bestCell = rawCell;
+            let tentativeWidth = gridSide * bestCell;
+            if(tentativeWidth > maxInner) {
+                bestCell = Math.floor(maxInner / gridSide);
+                if(bestCell < 40) bestCell = 40;
+            }
+            let finalCell = bestCell;
+            let innerSize = gridSide * finalCell;
+            let totalCanvasW = innerSize + (outerPadding * 2);
+            let totalCanvasH = innerSize + (outerPadding * 2);
+            if(totalCanvasW > maxCanvasLimit) {
+                let shrink = maxCanvasLimit - (outerPadding*2);
+                if(shrink > 0) {
+                    finalCell = Math.floor(shrink / gridSide);
+                    if(finalCell < 30) finalCell = 30;
+                    innerSize = gridSide * finalCell;
+                    totalCanvasW = innerSize + (outerPadding*2);
+                    totalCanvasH = totalCanvasW;
+                }
+            }
+            return {
+                gridSide: gridSide,
+                cellSize: finalCell,
+                innerSize: innerSize,
+                canvasW: totalCanvasW,
+                canvasH: totalCanvasW,
+                padding: outerPadding,
+                offsetX: outerPadding,
+                offsetY: outerPadding
+            };
+        }
+        
+        function renderCanvas() {
+            if(!redrawNeeded) return;
+            let count = images.length;
+            if(count === 0) {
+                canvas.width = 600;
+                canvas.height = 600;
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(0,0,600,600);
+                ctx.fillStyle = "#222";
+                ctx.font = "bold 16px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("DROP / PASTE IMAGES", 300, 280);
+                ctx.fillText("USE TRASH BIN", 300, 330);
+                ctx.textAlign = "left";
+                document.getElementById('imgCount').innerText = "0";
+                document.getElementById('gridDim').innerText = "0x0";
+                return;
+            }
+            let metrics = getSquareGridMetricsWithPadding(count);
+            let { gridSide, cellSize, innerSize, canvasW, canvasH, offsetX, offsetY, padding } = metrics;
+            canvas.width = canvasW;
+            canvas.height = canvasH;
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvasW, canvasH);
+            
+            // draw EMPTY SPACE (just white bg, but we fill whole canvas)
+            // draw black grid lines only within inner rect (from offsetX to offsetX+innerSize)
+            let startX = offsetX;
+            let startY = offsetY;
+            let endX = startX + innerSize;
+            let endY = startY + innerSize;
+            
+            // vertical lines
+            for(let i = 0; i <= gridSide; i++) {
+                let x = startX + i * cellSize;
+                ctx.beginPath();
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, endY);
+                ctx.lineWidth = lineThick;
+                ctx.strokeStyle = "#000000";
+                ctx.stroke();
+            }
+            // horizontal lines
+            for(let i = 0; i <= gridSide; i++) {
+                let y = startY + i * cellSize;
+                ctx.beginPath();
+                ctx.moveTo(startX, y);
+                ctx.lineTo(endX, y);
+                ctx.stroke();
+            }
+            
+            // draw images inside cells
+            for(let idx = 0; idx < images.length; idx++) {
+                let row = Math.floor(idx / gridSide);
+                let col = idx % gridSide;
+                let x = startX + col * cellSize;
+                let y = startY + row * cellSize;
+                let imgObj = images[idx].img;
+                if(imgObj && imgObj.complete) {
+                    ctx.drawImage(imgObj, x, y, cellSize, cellSize);
+                }
+            }
+            
+            // draw TITLE (above grid, respecting padding + top area)
+            let titleText = document.getElementById('gridTitle').value;
+            if(titleText.trim() !== "") {
+                ctx.save();
+                let fontSize = Math.min(46, Math.floor(cellSize * 0.7));
+                ctx.font = `800 ${fontSize}px "Courier New", monospace`;
+                let metricsTxt = ctx.measureText(titleText);
+                let txtW = metricsTxt.width;
+                let txtH = fontSize;
+                let titlePaddingX = 24;
+                let titlePaddingY = 16;
+                let titleBoxY = Math.max(8, offsetY * 0.5);
+                let boxX = (canvas.width - txtW) / 2 - titlePaddingX/2;
+                if(boxX < 8) boxX = 8;
+                ctx.fillStyle = "#000000BB";
+                ctx.fillRect(boxX - 4, titleBoxY - 6, txtW + titlePaddingX, txtH + 18);
+                ctx.fillStyle = "#FFFFFF";
+                ctx.font = `800 ${fontSize}px "Courier New", monospace`;
+                ctx.textAlign = "center";
+                ctx.fillText(titleText, canvas.width/2, titleBoxY + txtH - 2);
+                ctx.textAlign = "left";
+                ctx.restore();
+            }
+            document.getElementById('imgCount').innerText = count;
+            document.getElementById('gridDim').innerText = `${gridSide}×${gridSide}`;
+            redrawNeeded = false;
+        }
+        
+        function squareCropImage(source, callback) {
+            let imgLoader = new Image();
+            imgLoader.crossOrigin = "Anonymous";
+            imgLoader.onload = () => {
+                let side = Math.min(imgLoader.width, imgLoader.height);
+                let cropX = (imgLoader.width - side) / 2;
+                let cropY = (imgLoader.height - side) / 2;
+                let tmpCanvas = document.createElement('canvas');
+                tmpCanvas.width = side;
+                tmpCanvas.height = side;
+                let tmpCtx = tmpCanvas.getContext('2d');
+                tmpCtx.drawImage(imgLoader, cropX, cropY, side, side, 0, 0, side, side);
+                let squaredImg = new Image();
+                squaredImg.onload = () => callback(squaredImg);
+                squaredImg.src = tmpCanvas.toDataURL('image/png');
+            };
+            imgLoader.onerror = () => callback(null);
+            imgLoader.src = source;
+        }
+        
+        function addNewImage(src) {
+            squareCropImage(src, (croppedImage) => {
+                if(croppedImage) {
+                    images.push({ img: croppedImage });
+                    redrawNeeded = true;
+                    renderCanvas();
+                } else { alert("IMAGE ERROR / INVALID"); }
+            });
+        }
+        
+        // BUTTONS
+        document.getElementById('pasteBtn').addEventListener('click', async () => {
+            try {
+                let items = await navigator.clipboard.read();
+                for(let item of items) {
+                    let imgType = item.types.find(t => t.startsWith('image/'));
+                    if(imgType) {
+                        let blob = await item.getType(imgType);
+                        let url = URL.createObjectURL(blob);
+                        addNewImage(url);
+                        URL.revokeObjectURL(url);
+                        return;
+                    }
+                }
+                alert("No image in clipboard");
+            } catch(e) { alert("Clipboard error, paste URL instead"); }
+        });
+        
+        document.getElementById('fileBtn').addEventListener('click', () => {
+            let input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                if(e.target.files[0]) {
+                    let file = e.target.files[0];
+                    let reader = new FileReader();
+                    reader.onload = (ev) => addNewImage(ev.target.result);
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        });
+        
+        document.getElementById('urlBtn').addEventListener('click', () => {
+            let url = document.getElementById('imageUrl').value.trim();
+            if(!url) return alert("Enter URL");
+            addNewImage(url);
+            document.getElementById('imageUrl').value = '';
+        });
+        
+        let dropHint = document.getElementById('dropHint');
+        dropHint.addEventListener('dragover', (e) => { e.preventDefault(); dropHint.style.background = "#cdc2ae"; });
+        dropHint.addEventListener('dragleave', () => { dropHint.style.background = "#e9e2d4"; });
+        dropHint.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropHint.style.background = "#e9e2d4";
+            let file = e.dataTransfer.files[0];
+            if(file && file.type.match('image')) {
+                let reader = new FileReader();
+                reader.onload = (ev) => addNewImage(ev.target.result);
+                reader.readAsDataURL(file);
+            } else alert("Only images");
+        });
+        
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('drop', (e) => e.preventDefault());
+        
+        document.getElementById('exportPngBtn').addEventListener('click', () => {
+            if(images.length === 0) return alert("No images");
+            redrawNeeded = true;
+            renderCanvas();
+            setTimeout(() => {
+                let link = document.createElement('a');
+                link.download = 'square_grid_export.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }, 80);
+        });
+        
+        let titleInput = document.getElementById('gridTitle');
+        titleInput.addEventListener('input', () => { redrawNeeded = true; renderCanvas(); });
+        window.addEventListener('resize', () => { redrawNeeded = true; renderCanvas(); });
+        
+        // DRAG & REORDER + TRASH (with preview)
+        function getImageIndexUnderCursor(e) {
+            let rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width / rect.width;
+            let scaleY = canvas.height / rect.height;
+            let mouseX = (e.clientX - rect.left) * scaleX;
+            let mouseY = (e.clientY - rect.top) * scaleY;
+            if(mouseX < 0 || mouseY < 0) return -1;
+            let cnt = images.length;
+            if(cnt === 0) return -1;
+            let metrics = getSquareGridMetricsWithPadding(cnt);
+            let { gridSide, cellSize, offsetX, offsetY, innerSize } = metrics;
+            if(mouseX < offsetX || mouseX > offsetX+innerSize || mouseY < offsetY || mouseY > offsetY+innerSize) return -1;
+            let relX = mouseX - offsetX;
+            let relY = mouseY - offsetY;
+            let col = Math.floor(relX / cellSize);
+            let row = Math.floor(relY / cellSize);
+            if(col < 0 || row < 0) return -1;
+            let idx = row * gridSide + col;
+            if(idx >= 0 && idx < images.length) return idx;
+            return -1;
+        }
+        
+        function swapImagesByIndex(a, b) {
+            if(a === b) return;
+            let temp = images[a];
+            images[a] = images[b];
+            images[b] = temp;
+            redrawNeeded = true;
+            renderCanvas();
+        }
+        
+        function removeImageAtIndex(idx) {
+            if(idx >= 0 && idx < images.length) {
+                images.splice(idx, 1);
+                redrawNeeded = true;
+                renderCanvas();
+                hidePreview();
+            }
+        }
+        
+        let dragActive = false;
+        let dragStartIndex = -1;
+        let dragCurrentOverIndex = -1;
+        let isDraggingToTrash = false;
+        let previewDiv = document.getElementById('dragPreview');
+        let trashDiv = document.getElementById('trashZone');
+        
+        function showPreview(url, x, y) {
+            previewDiv.style.display = "block";
+            previewDiv.style.backgroundImage = `url(${url})`;
+            previewDiv.style.backgroundSize = "cover";
+            previewDiv.style.left = (x + 15) + "px";
+            previewDiv.style.top = (y + 15) + "px";
+        }
+        function hidePreview() { previewDiv.style.display = "none"; previewDiv.style.backgroundImage = ""; }
+        function updatePreviewPosition(x, y) { if(previewDiv.style.display === "block") { previewDiv.style.left = (x + 18) + "px"; previewDiv.style.top = (y + 18) + "px"; } }
+        
+        canvas.addEventListener('mousedown', (e) => {
+            if(images.length === 0) return;
+            let idx = getImageIndexUnderCursor(e);
+            if(idx !== -1) {
+                dragActive = true;
+                dragStartIndex = idx;
+                dragCurrentOverIndex = idx;
+                isDraggingToTrash = false;
+                let imgUrl = images[idx].img.src;
+                showPreview(imgUrl, e.clientX, e.clientY);
+                canvas.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        
+        window.addEventListener('mousemove', (e) => {
+            if(!dragActive) return;
+            updatePreviewPosition(e.clientX, e.clientY);
+            let trashRect = trashDiv.getBoundingClientRect();
+            let overTrash = (e.clientX >= trashRect.left && e.clientX <= trashRect.right && e.clientY >= trashRect.top && e.clientY <= trashRect.bottom);
+            if(overTrash) { isDraggingToTrash = true; trashDiv.classList.add('active-drop'); } 
+            else { isDraggingToTrash = false; trashDiv.classList.remove('active-drop'); }
+            if(!overTrash) {
+                let targetIdx = getImageIndexUnderCursor(e);
+                if(targetIdx !== -1 && targetIdx !== dragCurrentOverIndex && dragStartIndex !== -1) {
+                    swapImagesByIndex(dragStartIndex, targetIdx);
+                    dragStartIndex = targetIdx;
+                    dragCurrentOverIndex = targetIdx;
+                }
+            }
+        });
+        
+        window.addEventListener('mouseup', (e) => {
+            if(dragActive) {
+                if(isDraggingToTrash && dragStartIndex !== -1) removeImageAtIndex(dragStartIndex);
+                dragActive = false; dragStartIndex = -1; dragCurrentOverIndex = -1; isDraggingToTrash = false;
+                canvas.style.cursor = 'grab';
+                hidePreview();
+                trashDiv.classList.remove('active-drop');
+                redrawNeeded = true; renderCanvas();
+            }
+        });
+        canvas.addEventListener('dragstart', (e) => e.preventDefault());
+        canvas.style.cursor = 'grab';
+        
+        setInterval(() => { if(redrawNeeded) renderCanvas(); }, 70);
+        renderCanvas();
+    })();
+</script>
+</body>
+</html>
